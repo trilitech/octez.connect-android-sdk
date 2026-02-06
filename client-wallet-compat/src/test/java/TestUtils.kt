@@ -1,16 +1,16 @@
 
-import it.airgap.beaconsdk.core.data.BeaconError
-import it.airgap.beaconsdk.core.data.Connection
-import it.airgap.beaconsdk.core.data.MockAppMetadata
-import it.airgap.beaconsdk.core.internal.blockchain.MockBlockchain
-import it.airgap.beaconsdk.core.internal.blockchain.message.BlockchainMockRequest
-import it.airgap.beaconsdk.core.internal.blockchain.message.BlockchainMockResponse
-import it.airgap.beaconsdk.core.internal.blockchain.message.PermissionMockRequest
-import it.airgap.beaconsdk.core.internal.blockchain.message.PermissionMockResponse
-import it.airgap.beaconsdk.core.internal.di.DependencyRegistry
-import it.airgap.beaconsdk.core.internal.message.BeaconIncomingConnectionMessage
-import it.airgap.beaconsdk.core.internal.message.VersionedBeaconMessage
-import it.airgap.beaconsdk.core.message.*
+import io.tezos.octezconnect.core.data.BeaconError
+import io.tezos.octezconnect.core.data.Connection
+import io.tezos.octezconnect.core.data.MockAppMetadata
+import io.tezos.octezconnect.core.internal.blockchain.MockBlockchain
+import io.tezos.octezconnect.core.internal.blockchain.message.BlockchainMockRequest
+import io.tezos.octezconnect.core.internal.blockchain.message.BlockchainMockResponse
+import io.tezos.octezconnect.core.internal.blockchain.message.PermissionMockRequest
+import io.tezos.octezconnect.core.internal.blockchain.message.PermissionMockResponse
+import io.tezos.octezconnect.core.internal.di.DependencyRegistry
+import io.tezos.octezconnect.core.internal.message.BeaconIncomingConnectionMessage
+import io.tezos.octezconnect.core.internal.message.VersionedBeaconMessage
+import io.tezos.octezconnect.core.message.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 
 // -- extensions --

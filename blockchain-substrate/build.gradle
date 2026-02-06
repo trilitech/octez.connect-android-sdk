@@ -1,6 +1,6 @@
-import it.airgap.beaconsdk.build.Android
-import it.airgap.beaconsdk.build.Dependencies
-import it.airgap.beaconsdk.build.TestDependencies
+import io.tezos.octezconnect.build.Android
+import io.tezos.octezconnect.build.Dependencies
+import io.tezos.octezconnect.build.TestDependencies
 
 plugins {
     id 'com.android.library'

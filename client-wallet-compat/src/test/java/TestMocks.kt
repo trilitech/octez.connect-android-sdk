@@ -1,14 +1,14 @@
 
 import android.content.Context
 import io.mockk.*
-import it.airgap.beaconsdk.core.internal.BeaconSdk
-import it.airgap.beaconsdk.core.internal.blockchain.BlockchainRegistry
-import it.airgap.beaconsdk.core.internal.blockchain.MockBlockchain
-import it.airgap.beaconsdk.core.internal.compat.CoreCompat
-import it.airgap.beaconsdk.core.internal.crypto.data.KeyPair
-import it.airgap.beaconsdk.core.internal.data.BeaconApplication
-import it.airgap.beaconsdk.core.internal.di.DependencyRegistry
-import it.airgap.beaconsdk.core.scope.BeaconScope
+import io.tezos.octezconnect.core.internal.BeaconSdk
+import io.tezos.octezconnect.core.internal.blockchain.BlockchainRegistry
+import io.tezos.octezconnect.core.internal.blockchain.MockBlockchain
+import io.tezos.octezconnect.core.internal.compat.CoreCompat
+import io.tezos.octezconnect.core.internal.crypto.data.KeyPair
+import io.tezos.octezconnect.core.internal.data.BeaconApplication
+import io.tezos.octezconnect.core.internal.di.DependencyRegistry
+import io.tezos.octezconnect.core.scope.BeaconScope
 
 // -- class --
 

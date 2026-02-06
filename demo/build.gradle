@@ -1,16 +1,16 @@
-import it.airgap.beaconsdk.build.Android
-import it.airgap.beaconsdk.build.Dependencies
-import it.airgap.beaconsdk.build.TestDependencies
+import io.tezos.octezconnect.build.Android
+import io.tezos.octezconnect.build.Dependencies
+import io.tezos.octezconnect.build.TestDependencies
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 android {
-    namespace "it.airgap.beaconsdkdemo"
+    namespace "io.tezos.octezconnectdemo"
     compileSdk Android.compileSdk
 
     defaultConfig {
-        applicationId "it.airgap.beaconsdkdemo"
+        applicationId "io.tezos.octezconnectdemo"
         minSdk Android.minSdk
         targetSdk Android.targetSdk
         versionCode 1

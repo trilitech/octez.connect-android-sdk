@@ -1,15 +1,15 @@
 import android.content.Context
 import io.mockk.*
-import it.airgap.beaconsdk.blockchain.substrate.Substrate
-import it.airgap.beaconsdk.blockchain.substrate.internal.creator.SubstrateCreator
-import it.airgap.beaconsdk.blockchain.substrate.internal.di.ExtendedDependencyRegistry
-import it.airgap.beaconsdk.blockchain.substrate.internal.di.extend
-import it.airgap.beaconsdk.blockchain.substrate.internal.serializer.SubstrateSerializer
-import it.airgap.beaconsdk.core.internal.BeaconSdk
-import it.airgap.beaconsdk.core.internal.blockchain.BlockchainRegistry
-import it.airgap.beaconsdk.core.internal.data.BeaconApplication
-import it.airgap.beaconsdk.core.internal.di.DependencyRegistry
-import it.airgap.beaconsdk.core.internal.utils.currentTimestamp
+import io.tezos.octezconnect.blockchain.substrate.Substrate
+import io.tezos.octezconnect.blockchain.substrate.internal.creator.SubstrateCreator
+import io.tezos.octezconnect.blockchain.substrate.internal.di.ExtendedDependencyRegistry
+import io.tezos.octezconnect.blockchain.substrate.internal.di.extend
+import io.tezos.octezconnect.blockchain.substrate.internal.serializer.SubstrateSerializer
+import io.tezos.octezconnect.core.internal.BeaconSdk
+import io.tezos.octezconnect.core.internal.blockchain.BlockchainRegistry
+import io.tezos.octezconnect.core.internal.data.BeaconApplication
+import io.tezos.octezconnect.core.internal.di.DependencyRegistry
+import io.tezos.octezconnect.core.internal.utils.currentTimestamp
 
 // -- class --
 

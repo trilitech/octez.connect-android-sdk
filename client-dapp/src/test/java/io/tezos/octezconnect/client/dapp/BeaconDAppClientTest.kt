@@ -1,0 +1,462 @@
+package io.tezos.octezconnect.client.dapp
+
+import beaconConnectionMessageFlow
+import beaconRequests
+import beaconVersionedResponses
+import io.mockk.*
+import io.mockk.impl.annotations.MockK
+import io.tezos.octezconnect.client.dapp.internal.controller.account.AccountController
+import io.tezos.octezconnect.client.dapp.internal.storage.MockDAppClientStorage
+import io.tezos.octezconnect.core.data.Connection
+import io.tezos.octezconnect.core.data.Permission
+import io.tezos.octezconnect.core.exception.BeaconException
+import io.tezos.octezconnect.core.internal.BeaconConfiguration
+import io.tezos.octezconnect.core.internal.controller.connection.ConnectionController
+import io.tezos.octezconnect.core.internal.controller.message.MessageController
+import io.tezos.octezconnect.core.internal.crypto.Crypto
+import io.tezos.octezconnect.core.internal.crypto.data.KeyPair
+import io.tezos.octezconnect.core.internal.data.BeaconApplication
+import io.tezos.octezconnect.core.internal.di.DependencyRegistry
+import io.tezos.octezconnect.core.internal.message.BeaconIncomingConnectionMessage
+import io.tezos.octezconnect.core.internal.message.BeaconOutgoingConnectionMessage
+import io.tezos.octezconnect.core.internal.message.VersionedBeaconMessage
+import io.tezos.octezconnect.core.internal.serializer.Serializer
+import io.tezos.octezconnect.core.internal.storage.MockSecureStorage
+import io.tezos.octezconnect.core.internal.storage.StorageManager
+import io.tezos.octezconnect.core.internal.utils.IdentifierCreator
+import io.tezos.octezconnect.core.internal.utils.splitAt
+import io.tezos.octezconnect.core.internal.utils.success
+import io.tezos.octezconnect.core.internal.utils.toHexString
+import io.tezos.octezconnect.core.message.BeaconMessage
+import io.tezos.octezconnect.core.message.DisconnectBeaconMessage
+import io.tezos.octezconnect.core.scope.BeaconScope
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.test.runTest
+import mockDependencyRegistry
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import p2pPeers
+import permissions
+import tryEmitValues
+import versionedBeaconMessage
+import versionedBeaconMessageContext
+import java.io.IOException
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
+
+internal class BeaconDAppClientTest {
+
+    @MockK
+    private lateinit var connectionController: ConnectionController
+
+    @MockK
+    private lateinit var messageController: MessageController
+
+    @MockK
+    private lateinit var accountController: AccountController
+
+    @MockK
+    private lateinit var identifierCreator: IdentifierCreator
+
+    @MockK
+    private lateinit var crypto: Crypto
+
+    @MockK
+    private lateinit var serializer: Serializer
+
+    private lateinit var dependencyRegistry: DependencyRegistry
+    private lateinit var storageManager: StorageManager
+    private lateinit var beaconDAppClient: BeaconDAppClient
+
+    private val app: BeaconApplication = BeaconApplication(
+        keyPair = KeyPair(byteArrayOf(0), byteArrayOf(0)),
+        name = "mockApp",
+    )
+
+    private val beaconId: String = "beaconId"
+
+    private val dAppVersion: String = "3"
+    private val dAppId: String = "dAppId"
+    private val dAppConnectionId: Connection.Id = Connection.Id.P2P(dAppId)
+
+    private val walletId: String = "walletId"
+    private val walletConnectionId: Connection.Id = Connection.Id.P2P(walletId)
+
+    private val beaconScope: BeaconScope = BeaconScope.Global
+
+    @Before
+    fun setup() {
+        MockKAnnotations.init(this)
+
+        coEvery { messageController.onIncomingMessage(any(), any(), any()) } coAnswers {
+            Result.success(Pair(firstArg<Connection.Id>(), thirdArg<VersionedBeaconMessage>().toBeaconMessage(firstArg(), secondArg(), beaconScope)))
+        }
+
+        coEvery { messageController.onOutgoingMessage(any(), any(), any()) } coAnswers {
+            Result.success(Pair(secondArg<BeaconMessage>().destination, versionedBeaconMessage(secondArg(), beaconId, dependencyRegistry.versionedBeaconMessageContext)))
+        }
+
+        coEvery { connectionController.send(any()) } coAnswers { Result.success() }
+
+        every { crypto.guid() } returns Result.success("guid")
+
+        val configuration = BeaconConfiguration(ignoreUnsupportedBlockchains = false)
+        storageManager = StorageManager(beaconScope, MockDAppClientStorage(), MockSecureStorage(), identifierCreator, configuration)
+        beaconDAppClient = BeaconDAppClient(
+            app,
+            beaconId,
+            beaconScope,
+            connectionController,
+            messageController,
+            accountController,
+            storageManager,
+            crypto,
+            serializer,
+            identifierCreator,
+            configuration,
+        )
+
+
+        dependencyRegistry = mockDependencyRegistry(beaconScope)
+        every { dependencyRegistry.storageManager } returns storageManager
+        every { dependencyRegistry.identifierCreator } returns identifierCreator
+        every { dependencyRegistry.messageController } returns messageController
+    }
+
+    @After
+    fun cleanUp() {
+        unmockkAll()
+    }
+
+    @Test
+    fun `connects for messages flow`() {
+        runTest {
+            val responses = beaconVersionedResponses(dAppVersion, walletId, dependencyRegistry.versionedBeaconMessageContext).shuffled()
+
+            val beaconMessageFlow = beaconConnectionMessageFlow(responses.size + 1)
+
+            every { connectionController.subscribe() } answers { beaconMessageFlow }
+
+            val messages =
+                beaconDAppClient.connect()
+                    .onStart { beaconMessageFlow.tryEmitValues(responses.map { BeaconIncomingConnectionMessage(walletConnectionId, it) }) }
+                    .mapNotNull { it.getOrNull() }
+                    .take(responses.size)
+                    .toList()
+
+            val expected = responses.map { it.toBeaconMessage(walletConnectionId, Connection.Id.ownFrom(walletConnectionId), beaconScope) }
+
+            assertEquals(expected.sortedBy { it.toString() }, messages.sortedBy { it.toString() })
+            coVerify(exactly = expected.size) { messageController.onIncomingMessage(any(), any(), any()) }
+
+            confirmVerified(messageController)
+        }
+    }
+
+    @Test
+    fun `sends a request`() {
+        runTest {
+            coEvery { connectionController.send(any()) } returns Result.success()
+
+            val destination = walletConnectionId
+            val requests = beaconRequests(dAppVersion, walletId, destination).shuffled()
+
+            requests.forEach {
+                val versioned = versionedBeaconMessage(it, beaconId, dependencyRegistry.versionedBeaconMessageContext)
+                val expected = BeaconOutgoingConnectionMessage(destination, versioned)
+
+                beaconDAppClient.request(it)
+                coVerify(exactly = 1) { connectionController.send(expected) }
+            }
+
+            confirmVerified(connectionController)
+        }
+    }
+
+    @Test
+    fun `emits BeaconException when internal error occurred`() {
+        runTest {
+            val responses = beaconVersionedResponses(context = dependencyRegistry.versionedBeaconMessageContext).shuffled()
+            val beaconMessageFlow = beaconConnectionMessageFlow(responses.size + 1)
+
+            val exception = Exception()
+
+            every { connectionController.subscribe() } answers { beaconMessageFlow }
+            coEvery { messageController.onIncomingMessage(any(), any(), any()) } returns Result.failure(exception)
+
+            val errors =
+                beaconDAppClient.connect()
+                    .onStart { beaconMessageFlow.tryEmitValues(responses.map { BeaconIncomingConnectionMessage(dAppConnectionId, it) }) }
+                    .mapNotNull { it.exceptionOrNull() }
+                    .take(responses.size)
+                    .toList()
+
+            val expected = errors.map { BeaconException.from(exception) }
+
+            assertEquals(expected.map(Exception::toString).sorted(), errors.map(Throwable::toString).sorted())
+            coVerify(exactly = responses.size) { messageController.onIncomingMessage(any(), any(), any()) }
+
+            confirmVerified(messageController)
+        }
+    }
+
+    @Test
+    fun `fails to request when outgoing message processing failed with internal error`() {
+        runTest {
+            val error = IllegalStateException()
+            coEvery { messageController.onOutgoingMessage(any(), any(), any()) } returns Result.failure(error)
+
+            beaconRequests().forEach {
+                val exception = assertFailsWith<BeaconException> { beaconDAppClient.request(it) }
+
+                assertEquals(error, exception.cause)
+            }
+        }
+    }
+
+    @Test
+    fun `fails to request when message sending failed`() {
+        val error = IOException()
+        runTest {
+            coEvery { connectionController.send(any()) } returns Result.failure(error)
+
+            val responses = beaconRequests().shuffled()
+
+            responses.forEach {
+                val exception = assertFailsWith<BeaconException> {
+                    beaconDAppClient.request(it)
+                }
+
+                assertEquals(error, exception.cause)
+            }
+
+            coVerify(exactly = responses.size) { messageController.onOutgoingMessage(any(), any(), any()) }
+            coVerify(exactly = responses.size) { connectionController.send(any()) }
+
+            confirmVerified(messageController, connectionController)
+        }
+    }
+
+//    @Test
+//    fun `removes peer on disconnect message received`() {
+//        runTest {
+//            val publicKey = "publicKey"
+//            val origin = Connection.Id.P2P(publicKey)
+//            val peer = P2pPeer(name = "name", relayServer = "relayServer", publicKey = publicKey)
+//            storageManager.setPeers(listOf(peer))
+//
+//            val versionedResponses = beaconVersionedResponses(dAppVersion, walletId, dependencyRegistry.versionedBeaconMessageContext).shuffled().first()
+//            val connectionResponseMessage = BeaconIncomingConnectionMessage(origin, versionedResponses)
+//
+//            val disconnectMessage = disconnectBeaconMessage(senderId = dAppId, destination = origin)
+//            val versionedDisconnectMessage = VersionedBeaconMessage.from(disconnectMessage.senderId, disconnectMessage, dependencyRegistry.versionedBeaconMessageContext)
+//            val connectionDisconnectMessage = BeaconIncomingConnectionMessage(disconnectMessage.destination, versionedDisconnectMessage)
+//
+//            val beaconMessageFlow = beaconConnectionMessageFlow(2)
+//            every { connectionController.subscribe() } answers { beaconMessageFlow }
+//
+//            beaconDAppClient.connect()
+//                .onStart { beaconMessageFlow.tryEmitValues(listOf(connectionDisconnectMessage, connectionResponseMessage)) }
+//                .mapNotNull { it.getOrNull() }
+//                .take(1)
+//                .single()
+//
+//            val fromStorage = storageManager.getPeers()
+//
+//            assertEquals(emptyList(), fromStorage)
+//        }
+//    }
+
+    @Test
+    fun `adds peers to storage`() {
+        runTest {
+            storageManager.setPeers(emptyList())
+
+            val (newPeersVararg, newPeersList) = p2pPeers(4).splitAt { it.size / 2 }
+
+            with(beaconDAppClient) {
+                addPeers(*newPeersVararg.toTypedArray())
+                addPeers(newPeersList)
+            }
+
+            val expected = newPeersVararg + newPeersList
+            val fromStorage = storageManager.getPeers()
+
+            assertEquals(expected.sortedBy { it.name }, fromStorage.sortedBy { it.name })
+        }
+    }
+
+    @Test
+    fun `returns peers from storage`() {
+        runTest {
+            val storagePeers = p2pPeers(4)
+            storageManager.setPeers(storagePeers)
+
+            val fromClient = beaconDAppClient.getPeers()
+
+            assertEquals(storagePeers, fromClient)
+        }
+    }
+
+    @Test
+    fun `removes peers from storage and sends disconnect message`() {
+        runTest {
+            val (toKeep, toRemove) = p2pPeers(4).splitAt { it.size / 2 }
+
+            val expectedDisconnectMessages = toRemove.map {
+                val peerOrigin = Connection.Id.forPeer(it)
+                DisconnectBeaconMessage(crypto.guid().getOrThrow(), beaconId, it.version, Connection.Id.ownFrom(peerOrigin), peerOrigin)
+            }
+
+            val expectedConnectionMessages = expectedDisconnectMessages.map {
+                BeaconOutgoingConnectionMessage(it.destination to VersionedBeaconMessage.from(beaconId, it, dependencyRegistry.versionedBeaconMessageContext))
+            }
+
+            storageManager.setPeers(toKeep + toRemove)
+
+            val (toRemoveVararg, toRemoveList) = toRemove.splitAt { it.size / 2 }
+            with(beaconDAppClient) {
+                removePeers(*toRemoveVararg.toTypedArray())
+                removePeers(toRemoveList)
+            }
+
+            val fromStorage = storageManager.getPeers()
+
+            assertEquals(toKeep, fromStorage)
+            coVerify(exactly = toRemove.count()) { connectionController.send(match { expectedConnectionMessages.contains(it) }) }
+        }
+    }
+
+    @Test
+    fun `does not remove any peer if not specified and does not send disconnect messages`() {
+        runTest {
+            val storagePeers = p2pPeers(4)
+            storageManager.setPeers(storagePeers)
+            beaconDAppClient.removePeers()
+
+            val fromStorage = storageManager.getPeers()
+
+            assertEquals(storagePeers, fromStorage)
+            coVerify(exactly = 0) { connectionController.send(any()) }
+        }
+    }
+
+    @Test
+    fun `removes all peers from storage and sends disconnect messages`() {
+        runTest {
+            val peers = p2pPeers(4)
+
+            val expectedDisconnectMessages = peers.map {
+                val peerOrigin = Connection.Id.forPeer(it)
+                DisconnectBeaconMessage(crypto.guid().getOrThrow(), beaconId, it.version, Connection.Id.ownFrom(peerOrigin), peerOrigin)
+            }
+            val expectedConnectionMessages = expectedDisconnectMessages.map {
+                BeaconOutgoingConnectionMessage(it.destination to VersionedBeaconMessage.from(beaconId, it, dependencyRegistry.versionedBeaconMessageContext))
+            }
+
+            storageManager.setPeers(peers)
+            beaconDAppClient.removeAllPeers()
+
+            val fromStorage = storageManager.getPeers()
+
+            assertTrue(fromStorage.isEmpty(), "Expected P2P peers list to be empty")
+            coVerify(exactly = peers.count()) { connectionController.send(match { expectedConnectionMessages.contains(it) }) }
+        }
+    }
+
+    @Test
+    fun `returns permissions from storage`() {
+        runTest {
+            val storagePermissions = permissions(4)
+            storageManager.setPermissions(storagePermissions)
+
+            val fromClient = beaconDAppClient.getPermissions()
+
+            assertEquals(storagePermissions, fromClient)
+        }
+    }
+
+    @Test
+    fun `returns permissions matching specified account identifier`() {
+        runTest {
+            val storagePermissions = permissions(4)
+            storageManager.setPermissions(storagePermissions)
+
+            val toFind = storagePermissions.random()
+            val fromClient = beaconDAppClient.getPermissionsFor(toFind.accountId)
+
+            assertEquals(toFind, fromClient)
+        }
+    }
+
+
+    @Test
+    fun `removes permissions matching specified account IDs`() {
+        runTest {
+            val (toKeep, toRemove) = permissions(4).splitAt { it.size / 2 }
+            storageManager.setPermissions(toKeep + toRemove)
+
+            val (toRemoveVararg, toRemoveList) = toRemove.map(Permission::accountId)
+                .splitAt { it.size / 2 }
+            with(beaconDAppClient) {
+                removePermissionsFor(*toRemoveVararg.toTypedArray())
+                removePermissionsFor(toRemoveList)
+            }
+
+            val fromStorage = storageManager.getPermissions()
+
+            assertEquals(toKeep, fromStorage)
+        }
+    }
+
+    @Test
+    fun `removes permissions from storage`() {
+        runTest {
+            val (toKeep, toRemove) = permissions(4).splitAt { it.size / 2 }
+            storageManager.setPermissions(toKeep + toRemove)
+
+            val (toRemoveVararg, toRemoveList) = toRemove.splitAt { it.size / 2 }
+            with(beaconDAppClient) {
+                removePermissions(*toRemoveVararg.toTypedArray())
+                removePermissions(toRemoveList)
+            }
+
+            val fromStorage = storageManager.getPermissions()
+
+            assertEquals(toKeep, fromStorage)
+        }
+    }
+
+    @Test
+    fun `does not remove any permission if not specified`() {
+        runTest {
+            val storagePermissions = permissions(4)
+            storageManager.setPermissions(storagePermissions)
+            beaconDAppClient.removePermissions()
+
+            val fromStorage = storageManager.getPermissions()
+
+            assertEquals(storagePermissions, fromStorage)
+        }
+    }
+
+    @Test
+    fun `removes all permissions from storage`() {
+        runTest {
+            val storagePermissions = permissions(4)
+            storageManager.setPermissions(storagePermissions)
+            beaconDAppClient.removeAllPermissions()
+
+            val fromStorage = storageManager.getPermissions()
+
+            assertTrue(fromStorage.isEmpty(), "Expected app metadata list to be empty")
+        }
+    }
+
+    private fun Connection.Id.Companion.ownFrom(destination: Connection.Id): Connection.Id =
+        when (destination) {
+            is Connection.Id.P2P -> destination.copy(id = app.keyPair.publicKey.toHexString().asString())
+        }
+}
