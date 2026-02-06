@@ -15,7 +15,7 @@ import io.tezos.octezconnect.core.storage.SecureStorage
 import io.tezos.octezconnect.core.storage.Storage
 
 /**
- * A base builder for the Beacon SDK's public entry points.
+ * A base builder for the Octez Connect SDK's public entry points.
  *
  * @constructor Creates a builder configured with the specified application [name].
  */

@@ -8,7 +8,7 @@ import io.tezos.octezconnect.core.internal.BeaconSdk
 import io.tezos.octezconnect.core.internal.utils.logInfo
 
 /**
- * Content provider which initializes the Beacon SDK at app startup time.
+ * Content provider which initializes the Octez Connect SDK at app startup time.
  */
 public class BeaconInitProvider : ContentProvider() {
     override fun onCreate(): Boolean {

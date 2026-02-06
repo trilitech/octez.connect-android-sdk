@@ -3,7 +3,7 @@ package io.tezos.octezconnect.core.exception
 import io.tezos.octezconnect.core.data.Connection
 
 /**
- * Base for exceptions recognized in the Beacon SDK.
+ * Base for exceptions recognized in the Octez Connect SDK.
  *
  * @property message An optional detailed error message.
  * @property cause An optional cause of the error.

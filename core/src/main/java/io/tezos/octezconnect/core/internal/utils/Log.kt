@@ -5,7 +5,7 @@ import androidx.annotation.RestrictTo
 import io.tezos.octezconnect.core.configuration.LogLevel
 import io.tezos.octezconnect.core.internal.BeaconConfiguration
 
-private const val GLOBAL_TAG = "[Beacon SDK]"
+private const val GLOBAL_TAG = "[Octez Connect SDK]"
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class Logger(private val tag: String, private val configuration: BeaconConfiguration) {

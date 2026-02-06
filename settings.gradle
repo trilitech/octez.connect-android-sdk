@@ -1,4 +1,4 @@
-rootProject.name = "Beacon SDK"
+rootProject.name = "Octez Connect SDK"
 
 include ':core'
 
