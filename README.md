@@ -42,29 +42,31 @@ To add `Octez Connect Android SDK` into your project:
 
   2. Add the dependencies:
 
+  > **Important:** Because of a [known JitPack limitation](https://github.com/jitpack/jitpack.io/issues/808) with multi-module repositories containing dots (`.`) in their name, you must replace the dot with a tilde (`~`) in the repository name portion of the group ID (`octez~connect-android-sdk`).
+
   #### Groovy
   ```groovy
   dependencies {
     def octezConnectVersion = "x.y.z"
 
     // REQUIRED, core
-    implementation "com.github.trilitech.octez.connect-android-sdk:core:$octezConnectVersion"
+    implementation "com.github.trilitech.octez~connect-android-sdk:core:$octezConnectVersion"
 
     // optional, client-dapp
-    implementation "com.github.trilitech.octez.connect-android-sdk:client-dapp:$octezConnectVersion"
+    implementation "com.github.trilitech.octez~connect-android-sdk:client-dapp:$octezConnectVersion"
   
     // optional, client-wallet
-    implementation "com.github.trilitech.octez.connect-android-sdk:client-wallet:$octezConnectVersion"
+    implementation "com.github.trilitech.octez~connect-android-sdk:client-wallet:$octezConnectVersion"
     // optional, client-wallet-compat
-    implementation "com.github.trilitech.octez.connect-android-sdk:client-wallet-compat:$octezConnectVersion"
+    implementation "com.github.trilitech.octez~connect-android-sdk:client-wallet-compat:$octezConnectVersion"
   
     // optional, blockchain-substrate
-    implementation "com.github.trilitech.octez.connect-android-sdk:blockchain-substrate:$octezConnectVersion"
+    implementation "com.github.trilitech.octez~connect-android-sdk:blockchain-substrate:$octezConnectVersion"
     // optional, blockchain-tezos
-    implementation "com.github.trilitech.octez.connect-android-sdk:blockchain-tezos:$octezConnectVersion"
+    implementation "com.github.trilitech.octez~connect-android-sdk:blockchain-tezos:$octezConnectVersion"
   
     // optional, transport-p2p-matrix
-    implementation "com.github.trilitech.octez.connect-android-sdk:transport-p2p-matrix:$octezConnectVersion"
+    implementation "com.github.trilitech.octez~connect-android-sdk:transport-p2p-matrix:$octezConnectVersion"
   
     // REQUIRED
     def jna_version = "x.y.z"
@@ -79,23 +81,23 @@ To add `Octez Connect Android SDK` into your project:
     val octezConnectVersion = "x.y.z"
   
     // REQUIRED, core
-    implementation("com.github.trilitech.octez.connect-android-sdk:core:$octezConnectVersion")
+    implementation("com.github.trilitech.octez~connect-android-sdk:core:$octezConnectVersion")
 
     // optional, client-dapp
-    implementation("com.github.trilitech.octez.connect-android-sdk:client-dapp:$octezConnectVersion")
+    implementation("com.github.trilitech.octez~connect-android-sdk:client-dapp:$octezConnectVersion")
   
     // optional, client-wallet
-    implementation("com.github.trilitech.octez.connect-android-sdk:client-wallet:$octezConnectVersion")
+    implementation("com.github.trilitech.octez~connect-android-sdk:client-wallet:$octezConnectVersion")
     // optional, client-wallet-compat
-    implementation("com.github.trilitech.octez.connect-android-sdk:client-wallet-compat:$octezConnectVersion")
+    implementation("com.github.trilitech.octez~connect-android-sdk:client-wallet-compat:$octezConnectVersion")
   
     // optional, blockchain-substrate
-    implementation("com.github.trilitech.octez.connect-android-sdk:blockchain-substrate:$octezConnectVersion")
+    implementation("com.github.trilitech.octez~connect-android-sdk:blockchain-substrate:$octezConnectVersion")
     // optional, blockchain-tezos
-    implementation("com.github.trilitech.octez.connect-android-sdk:blockchain-tezos:$octezConnectVersion")
+    implementation("com.github.trilitech.octez~connect-android-sdk:blockchain-tezos:$octezConnectVersion")
   
     // optional, transport-p2p-matrix
-    implementation("com.github.trilitech.octez.connect-android-sdk:transport-p2p-matrix:$octezConnectVersion")
+    implementation("com.github.trilitech.octez~connect-android-sdk:transport-p2p-matrix:$octezConnectVersion")
   
     // REQUIRED
     val jnaVersion = "x.y.z"
@@ -123,8 +125,8 @@ See the list of known issues and how to fix them if you run into problems after 
     ```groovy
     def withoutJna = { exclude group: "net.java.dev.jna" }
     
-    implementation "com.github.trilitech.octez.connect-android-sdk:core:$octezConnectVersion", withoutJna
-    implementation "com.github.trilitech.octez.connect-android-sdk:client-wallet:$octezConnectVersion", withoutJna 
+    implementation "com.github.trilitech.octez~connect-android-sdk:core:$octezConnectVersion", withoutJna
+    implementation "com.github.trilitech.octez~connect-android-sdk:client-wallet:$octezConnectVersion", withoutJna 
     ...
   
     def jna_version = "5.9.0"
@@ -138,8 +140,8 @@ See the list of known issues and how to fix them if you run into problems after 
         exclude(group = "net.java.dev.jna")
     }
     
-    implementation("com.github.trilitech.octez.connect-android-sdk:core:$octezConnectVersion") { excludeJna() }
-    implementation("com.github.trilitech.octez.connect-android-sdk:client-wallet:$octezConnectVersion") { excludeJna() }
+    implementation("com.github.trilitech.octez~connect-android-sdk:core:$octezConnectVersion") { excludeJna() }
+    implementation("com.github.trilitech.octez~connect-android-sdk:client-wallet:$octezConnectVersion") { excludeJna() }
     ...
     
     val jnaVersion = "5.9.0"
