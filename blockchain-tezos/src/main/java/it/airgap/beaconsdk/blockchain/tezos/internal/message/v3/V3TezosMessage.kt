@@ -305,9 +305,9 @@ internal data class PermissionV3TezosResponse(
     val address: String,
     val network: TezosNetwork,
     val scopes: List<TezosPermission.Scope>,
-    val appMetadata: V3TezosAppMetadata?,
-    val threshold: TezosThreshold?,
-    val notification: TezosNotification?
+    val appMetadata: V3TezosAppMetadata? = null,
+    val threshold: TezosThreshold? = null,
+    val notification: TezosNotification? = null,
 ) : PermissionV3BeaconResponseContent.BlockchainData() {
 
     companion object {
