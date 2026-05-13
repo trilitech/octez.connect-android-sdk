@@ -294,9 +294,9 @@ internal data class PermissionV2TezosResponse(
     val publicKey: String,
     val network: TezosNetwork,
     val scopes: List<TezosPermission.Scope>,
-    val appMetadata: V2TezosAppMetadata?,
-    val threshold: TezosThreshold?,
-    val notification: TezosNotification?
+    val appMetadata: V2TezosAppMetadata? = null,
+    val threshold: TezosThreshold? = null,
+    val notification: TezosNotification? = null,
 ) : V2TezosMessage() {
     @Required
     override val type: String = TYPE
