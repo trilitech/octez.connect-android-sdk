@@ -130,6 +130,7 @@ public class P2pMatrix internal constructor(
             .map { communicator.destructChannelOpeningMessage(it.message) }
             .map { security.decryptPairingPayload(it) }
             .map { communicator.pairingResponseFromPayload(it) }
+            .onStart { tryLog(logger) { matrix.start() } }
     }
 
     /**
